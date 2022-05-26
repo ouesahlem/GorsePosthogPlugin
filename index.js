@@ -99,7 +99,7 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
     verifyConfig(meta)
     const { global } = meta
     global.buffer = createBuffer({
-        limit: 1 * 1024 * 1024, // 1 MB
+        limit: 5 * 1024 * 1024, // 1 MB
         timeoutSeconds: 1,
         onFlush: async (events) => {
             for (const event of events) {
@@ -132,7 +132,6 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                 ).then(function(response) {
                       console.log(response.status)     //=> number 100–599
                       console.log(response.statusText) //=> String
-                      console.log(response.headers)    //=> Headers
                       console.log(response.url)        //=> String
                 }, function(error) {
                       console.log(error.message) //=> String
@@ -158,8 +157,7 @@ export function teardownPlugin({ global }: SendEventsPluginMeta) {
     global.buffer.flush()
 }
 
-//statusOk function processes the response to test the HTTP code. 
-// Test that the http status code is 200
+//Test that the http status code is 200
 function statusOk(res: Response) {
     return String(res.status)[0] === '2'
 }

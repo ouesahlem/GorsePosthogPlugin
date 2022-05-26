@@ -104,16 +104,15 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
         onFlush: async (events) => {
             for (const event of events) {
                 
-           var data=     JSON.stringify({ 
-                                'Comment': '',
-                                'FeedbackType' : event.event,
-                                'ItemId' : event.properties?.item_id,
-                                'Timestamp' : event.properties?.timestamp,
-                                'UserId' :  event.distinct_id
-                            })
+               var data=     JSON.stringify({ 
+                                    'Comment': '',
+                                    'FeedbackType' : event.event,
+                                    'ItemId' : event.properties?.item_id,
+                                    'Timestamp' : event.properties?.timestamp,
+                                    'UserId' :  event.distinct_id
+                                })
                 
-                //console.log('data');
-                console.log(data);
+                console.log(data)
                 console.log(event.event)
                 console.log(event.properties?.item_id) 
                 console.log(event.timestamp) 
@@ -130,11 +129,10 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                         body: data
                         
                     }
-                ).then(function(res) {
-                    console.log(res.json())
-                }
-                //const content = await response.json();
-                 //       console.log(content);
+                )
+                console.log(response.status)
+                const content = await response.json()
+                console.log(content)
              //   console.log(response.status)
                 //const body = await response.json()
                 //console.log(body)

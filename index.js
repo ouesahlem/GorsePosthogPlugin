@@ -121,7 +121,7 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                 const response = await fetch(
                     'http://51.89.15.39:8087/api/feedback',
                     {
-                        method: 'PUT',
+                        method: 'POST',
                         headers: {
                             'accept': 'application/json',
                             'Content-Type': 'application/json'

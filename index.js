@@ -105,11 +105,11 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
             for (const event of events) {
                 
                var data=     JSON.stringify({ 
-                                    'Comment': '',
                                     'FeedbackType' : event.event,
+                                    'UserId' :  event.distinct_id,
                                     'ItemId' : event.properties?.item_id,
                                     'Timestamp' : event.properties?.timestamp,
-                                    'UserId' :  event.distinct_id
+                                    'Comment': ''
                                 })
                 
                 console.log(data)

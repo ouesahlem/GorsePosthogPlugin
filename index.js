@@ -134,7 +134,7 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                       console.log(response.statusText) //=> String
                       console.log(response.headers)    //=> Headers
                       console.log(response.url)        //=> String
-                }), function(error) {
+                }, function(error) {
                       console.log(error.message) //=> String
                 })
                 //console.log(response.status)

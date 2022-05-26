@@ -126,18 +126,13 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                             'accept': 'application/json',
                             'Content-Type': 'application/json'
                         },
-                        body: [data]
+                        body: [data],
                         
                     }
                 )
-                
-                if (!statusOk(response)) {
-                    throw new Error(`Not a 200 response. Response: ${response.status} (${response})`)
-                } else {
-                    console.log(response.status)
-                    const content = await response.json()
-                    console.log(content)
-                }
+                console.log(response.status)
+                const content = await response.json()
+                console.log(content)
                 ////////////////////////////////////////
                 //await sendEventToGorse(event, meta)
             }

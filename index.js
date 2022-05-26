@@ -129,10 +129,17 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                         body: data,
                         
                     }
-                )
-                console.log(response.status)
-                const content = await response.json()
-                console.log(content)
+                ).then(function(response) {
+                      console.log(response.status)     //=> number 100–599
+                      console.log(response.statusText) //=> String
+                      console.log(response.headers)    //=> Headers
+                      console.log(response.url)        //=> String
+                }), function(error) {
+                      console.log(error.message) //=> String
+                })
+                //console.log(response.status)
+                //const content = await response.json()
+                //console.log(content)
                 ////////////////////////////////////////
                 //await sendEventToGorse(event, meta)
             }

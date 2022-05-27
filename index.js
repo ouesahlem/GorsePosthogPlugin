@@ -117,8 +117,26 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                 console.log(event.properties?.item_id) 
                 console.log(event.timestamp) 
                 console.log(event.distinct_id)
+                
                 /////////////////////////////////////
-                const response = await fetch(
+                //////////fetchWithRetry/////////////
+                const response = await fetchWithRetry(
+                    'http://51.89.15.39:8087/api/feedback',
+                    {
+                        headers: {
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: [data]
+                    },
+                    'PUT'
+                )
+                console.log(response.status)
+                console.log(response.statusText)
+                console.log(response.url)
+                /////////////////////////////////////
+                /////////////////////////////////////
+                /*const response = await fetch(
                     'http://51.89.15.39:8087/api/feedback',
                     {
                         method: 'POST',
@@ -135,7 +153,7 @@ export async function setupPlugin(meta: SendEventsPluginMeta) {
                       console.log(response.url)        //=> String
                 }, function(error) {
                       console.log(error.message) //=> String
-                })
+                })*/
                 //console.log(response.status)
                 //const content = await response.json()
                 //console.log(content)

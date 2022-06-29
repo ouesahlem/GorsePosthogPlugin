@@ -1,6 +1,6 @@
 {
-    "name": "Export Data to Gorse",
-    "url": "https://github.com/ouesahlem/Gorse",
+    "name": "Gorse Export Plugin",
+    "url": "https://github.com/ouesahlem/GorsePosthogPlugin",
     "description": "Export PostHog events into Gorse",
     "main": "index.js",
     "posthogVersion": ">= 1.25.0",
@@ -8,8 +8,26 @@
         {
             "key": "eventsToInclude",
             "name": "Events to include",
+            "default": "item_clicked,item_liked,item_pinned,item_shared,item_subscribed",
             "type": "string",
-            "hint": "Comma separated list of events to include"
+            "hint": "Comma separated list of events to include",
+            "required": true
+        },
+        {
+            "key": "RequestURL",
+            "name": "Request URL",
+            "default": "http://51.89.15.39:8087/api/feedback",
+            "type": "string",
+            "hint": "In the format of http://<Host>:<Port>/api/<TableName>",
+            "required": true
+        },
+        {
+            "key": "MethodType",
+            "name": "The type of method for the request url",
+            "default": "PUT",
+            "type": "string",
+            "hint": "Use one of these method types : PUT (to insert feedbacks. Existed feedback will be overwritten) or POST (to Insert feedbacks. Ignore insertion if feedback exists)",
+            "required": true
         }
     ]
 }

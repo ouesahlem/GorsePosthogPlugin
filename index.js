@@ -5,6 +5,11 @@ import { RetryError } from '@posthog/plugin-scaffold'
 
 // fetch only declared, as it's provided as a plugin VM global
 declare function fetch(url: RequestInfo, init?: RequestInit): Promise<Response>
+	
+//function insert at
+function addStr(str, index, stringToAdd){
+  return str.substring(0, index) + stringToAdd + str.substring(index, str.length);
+}
 //Specify metrics : 'total_requests' => sum of all http requests (events), 'errors' : sum of error responses (API). 
 export const metrics = {
     'total_requests': 'sum',
@@ -22,6 +27,8 @@ interface SendEventsPluginMeta extends PluginMeta {
     //and configured via the PostHog interface.
     config: {
         eventsToInclude: string
+	RequestURL: string
+	MethodType: string
     },
     
     //global object is used for sharing functionality between setupPlugin 
@@ -39,143 +46,178 @@ function verifyConfig({ config }: SendEventsPluginMeta) {
     }
 }
 
-
-async function sendEventToGorse(event: PluginEvent, meta: SendEventsPluginMeta) {
-
+async function updateItem(event: PluginEvent, meta: SendEventsPluginMeta) {
+	
+	const { config, metrics } = meta
+	
+	//data
+	var itemType = event.properties?.item_type
+	itemType = itemType.replace(" ","_")
+	const itemID = itemType + '_' + event.properties?.item_id
+	var categories = new String(event.properties?.item_category)
+	categories = addStr(categories, 0, event.properties?.item_type + "\", \"")
+	var labels = new String(event.properties?.item_sub_category)
+	labels = addStr(categories, 0, event.properties?.item_type + "\", \"")
+	const items = new String('{ \"Categories\":   [\"' + categories + '\"]  , \"Comment\": \"' + event.properties?.item_name + '\", \"IsHidden\": false, \"Labels\": [ \"' + labels + '\" ], \"Timestamp\": \"' + event.timestamp + '\"}')
+	
+	//fetch : update item
+	await fetch(
+                'http://51.89.15.39:8087/api/item/' + itemID,
+                {
+                        method: 'PATCH',
+                        headers: {
+			    'User-Agent': '*',
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                    	body: items,      
+                }
+        ).then(async (response) => JSON.stringify(response.json()))
+			//Then with the data from the response in JSON...
+			.then((data) => {
+			console.log('Success: item inserted');
+			})
+			//Then with the error genereted...
+			.catch((error) => {
+			  console.error('Error',response.status,':', error);
+			})
+}	
+async function sendFeedbackToGorse(event: PluginEvent, meta: SendEventsPluginMeta) {
     const { config, metrics } = meta
-
     //split included events by ','
     const types = (config.eventsToInclude).split(',')
-
     //Condition: if the recieved event name is not like the included one, 
     if (types.includes(event.event)) {
-
         //increment the number of requests
         metrics.total_requests.increment(1)
         
-        //fetch
-        const response = await fetch(
-            `http://51.89.15.39:8087/api/feedback`,
-            {
-                headers: {
-                    'accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                        'Comment': '',
-                        'FeedbackType' : event.event,
-                        'ItemId' : event.properties?.item_id,
-                        'Timestamp' : event.properties?.timestamp,
-                        'UserId' :  event.properties?.user_id
-                })
-
-            },
-            'PUT'
-        )
-        
-        //Condition: throws an error if the response status is not 'ok'.
-        if (!statusOk(response)) {
-            
-            //increment the number of errors.
-            metrics.errors.increment(1)
-            throw new Error(`Not a 200 response. Response: ${response.status} (${response})`)
-            
-        } else {
-            
-            console.log(`success`)
-            
-        }
-        
+	//data
+	const url = config.RequestURL
+	const method_type = config.MethodType
+	var itemType = event.properties?.item_type
+	itemType = itemType.replace(" ","_")
+	const itemID = itemType + '_' + event.properties?.item_id
+	const feedback = new String('[{\"Comment\": \"\",  \"FeedbackType\": \"' + event.event + '\",  \"ItemId\": \"' + itemID + '\",  \"Timestamp\": \"' + event.timestamp + '\",  \"UserId\": \"' + event.distinct_id + '\"}]')
+	
+	//fetch : add feedback
+        await fetch(
+                    url,
+                    {
+                        method: method_type,
+                        headers: {
+			    'User-Agent': '*',
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                    body: feedback,
+                    }
+                ).then(async (response) => JSON.stringify(response.json()))
+				//Then with the data from the response in JSON...
+				.then((data) => {
+					console.log('Success: feedback inserted')
+					return updateItem(event, meta)
+				})
+				//Then with the error genereted...
+				.catch((error) => {
+				  console.error('Error',response.status,':', error)
+				})
     } else {
         
         return
         
     }
 }
-    
+    async function sendEventToGorse(event) {
+  console.log('sendEventToGorse');
+	//data
+	const url = "http://51.89.15.39:8087/api/feedback"
+	const method_type = "PUT"
+	const itemID = event.properties?.item_type + '_' + event.properties?.item_id
+	const feedback = new String('[{\"Comment\": \"\",  \"FeedbackType\": \"' + event.event + '\",  \"ItemId\": \"' + itemID + '\",  \"Timestamp\": \"' + event.timestamp + '\",  \"UserId\": \"' + event.distinct_id + '\"}]')
+	
+	//fetch : add feedback
+        await fetch(
+                    url,
+                    {
+                        method: method_type,
+                        headers: {
+							'User-Agent': '*',
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+						body: feedback,
+                    }
+                ).then(async (response) => JSON.stringify(response.json()))
+				//Then with the data from the response in JSON...
+				.then((data) => {
+					console.log('Success: feedback inserted')
+					//return updateItem(event, meta)
+				})
+				//Then with the error genereted...
+				.catch((error) => {
+				  console.error('Error',response.status,':', error)
+				})
+    } 
+
 //setupPlugin function is used to dynamically set up configuration.  
 //It takes only an object of type PluginMeta as a parameter and does not return anything.
 export async function setupPlugin(meta: SendEventsPluginMeta) {  
-    verifyConfig(meta)
+  /*  verifyConfig(meta)
     const { global } = meta
     global.buffer = createBuffer({
-        limit: 5 * 1024 * 1024, // 1 MB
+        limit: 1 * 1024 * 1024, // 1 MB
         timeoutSeconds: 1,
-        onFlush: async (events) => {
-            for (const event of events) {
-                
-               var data=     JSON.stringify({ 
-                                    'FeedbackType' : event.event,
-                                    'UserId' :  event.distinct_id,
-                                    'ItemId' : event.properties?.item_id,
-                                    'Timestamp' : event.properties?.timestamp,
-                                    'Comment': ''
-                                })
-                
-                console.log(data)
-                console.log(event.event)
-                console.log(event.properties?.item_id) 
-                console.log(event.timestamp) 
-                console.log(event.distinct_id)
-                
-                /////////////////////////////////////
-                //////////fetchWithRetry/////////////
-                const response = await fetchWithRetry(
-                    'http://51.89.15.39:8087/api/feedback',
-                    {
-                        headers: {
-                            'accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: [data]
-                    },
-                    'PUT'
-                )
-                console.log(response.status)
-                console.log(response.statusText)
-                console.log(response.url)
-                /////////////////////////////////////
-                /////////////////////////////////////
-                /*const response = await fetch(
-                    'http://51.89.15.39:8087/api/feedback',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: [data],
-                        
-                    }
-                ).then(function(response) {
-                      console.log(response.status)     //=> number 100–599
-                      console.log(response.statusText) //=> String
-                      console.log(response.url)        //=> String
-                }, function(error) {
-                      console.log(error.message) //=> String
-                })*/
-                //console.log(response.status)
-                //const content = await response.json()
-                //console.log(content)
-                ////////////////////////////////////////
-                //await sendEventToGorse(event, meta)
-            }
-        },
-    })
+	onFlush: async (events) => {
+	    const timer1 = new Date().getTime()
+	    for (const event of events) {
+			console.log('on flush');
+		    await sendFeedbackToGorse(event, meta)
+	    }
+	    const timer2 = new Date().getTime()
+	    console.log('onFlush took', (timer2-timer1)/1000, 'seconds')
+    	}
+    })*/
 }
 
 //onEvent function takes an event and an object of type PluginMeta as parameters to read an event but not to modify it.
-export async function onEvent(event: PluginEvent, { global }: SendEventsPluginMeta) {
-    const eventSize = JSON.stringify(event).length
-    global.buffer.add(event, eventSize)
+export async function onEvent(event) {
+  /*  if (!global.buffer) {
+        throw new Error(`there is no buffer. setup must have failed, cannot process event: ${event.event}`)
+    }*/
+	
+   const url = "http://51.89.15.39:8087/api/feedback"
+	const method_type = "POST"
+	const itemID = event.properties?.item_type + '_' + event.properties?.item_id
+	const feedback = new String('[{\"Comment\": \"\",  \"FeedbackType\": \"' + event.event + '\",  \"ItemId\": \"' + itemID + '\",  \"Timestamp\": \"' + event.timestamp + '\",  \"UserId\": \"' + event.distinct_id + '\"}]')
+	console.log('feedback==>',feedback);
+	//fetch : add feedback
+        await fetch(
+                    url,
+                    {
+                        method: method_type,
+                        headers: {
+							'User-Agent': '*',
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+						body: feedback,
+                    }
+                )
+				//Then with the data from the response in JSON...
+				.then((data) => {
+					console.log('Success: feedback inserted')
+
+					//return updateItem(event, meta)
+				})
+				//Then with the error genereted...
+				.catch((error) => {
+				  console.error('Error:', error)
+				})
+
 }
+	
 
 //teardownPlugin is ran when a app VM is destroyed, It can be used to flush/complete any operations that may still be pending.
 export function teardownPlugin({ global }: SendEventsPluginMeta) {
     global.buffer.flush()
-}
-
-//Test that the http status code is 200
-function statusOk(res: Response) {
-    return String(res.status)[0] === '2'
 }
